@@ -1,0 +1,25 @@
+---
+workdir: /snapshot
+
+servers:
+  server-a:
+    username: root
+    password: super_secret_password
+    address: 10.0.0.100
+    port: 3306
+    
+  server-b:
+    username: root
+    password: mega_secret_password
+    address: 10.0.0.101
+    port: 3306
+    
+storage:
+  store1:
+    type: s3
+    region: eu-west-1
+    access_key: HELLO
+    secret_key: SHHHHHHH
+    bucket: my_bucket_name
+    prefix: "snapshot/"
+    gpg_password: s3cr3t
