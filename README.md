@@ -24,7 +24,7 @@ You can also pass `--config` or `-c` to specify the exact config filename you wi
 
 To get you started, simply run:
 
-  cp snapshot.yml.dist snapshot.yml
+    cp snapshot.yml.dist snapshot.yml
 
 and edit `snapshot.yml` to fit your environment
 
@@ -67,29 +67,29 @@ storage:
 
 The following command will backup all databases on `server-a` to `store1`.
 
-  bin/snapshot server:backup server-a store1
+    bin/snapshot server:backup server-a store1
 
 ### Backing up a single database:
 
 The following command will backup database `my_db` on `server-a` to `store1`.
 
-  bin/snapshot database:backup server-a my_db store1
+    bin/snapshot database:backup server-a my_db store1
 
 ### List remote snapshots
 
 The following command will list all snapshots in `store1`.
 
-  bin/snapshot snapshot:list store1
+    bin/snapshot snapshot:list store1
 
 The following command will list all snapshots in `store1` matching a filter.
 
-  bin/snapshot snapshot:list store1 snapshot-a/*/my_db
+    bin/snapshot snapshot:list store1 snapshot-a/*/my_db
 
 ## Restoring backups
 
 The following command will restore a backup of snapshot `server-a/20160101/my_db` from `store1` onto `server-b`:
 
-  bin/snapshot snapshot:restore store1 server-b server-a/20160101/my_db
+    bin/snapshot snapshot:restore store1 server-b server-a/20160101/my_db
 
 ## License
 
