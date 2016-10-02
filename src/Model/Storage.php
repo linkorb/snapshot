@@ -56,8 +56,10 @@ class Storage
         $s3 = new S3Client([
             'version' => 'latest',
             'region'  => $this->getArgument('region'),
-            'key' => $this->getArgument('access_key'),
-            'secret' => $this->getArgument('secret_key')
+            'credentials' => [
+                'key' => $this->getArgument('access_key'),
+                'secret' => $this->getArgument('secret_key')
+            ]
         ]);
         return $s3;
     }
