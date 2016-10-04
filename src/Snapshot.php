@@ -110,6 +110,7 @@ class Snapshot
     
     public function backup($serverName, $name, $storageName)
     {
+        $timeout = 60*20;
         $server = $this->getServer($serverName);
         $storage = $this->getStorage($storageName);
         
@@ -136,6 +137,8 @@ class Snapshot
         
         $this->output->write(" [Dump+Compress]");
         $process = new Process($cmd);
+        $process->setTimeout($timeout);
+        $process->setIdleTimeout($timeout);
         $process->run();
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
@@ -148,6 +151,8 @@ class Snapshot
         $cmd .= ' --batch -q --passphrase-fd 0 --cipher-algo AES256 -c "' . $filename . '"';
         
         $process = new Process($cmd);
+        $process->setTimeout($timeout);
+        $process->setIdleTimeout($timeout);
         $process->run();
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
@@ -172,6 +177,7 @@ class Snapshot
     
     public function restore($storageName, $serverName, $key)
     {
+        $timeout = 60*10;
         $server = $this->getServer($serverName);
         $storage = $this->getStorage($storageName);
         $part = explode('/', $key);
@@ -208,6 +214,8 @@ class Snapshot
         $cmd .= ' --no-tty -q --passphrase-fd 0 --decrypt "' . $filename . '.sql.gz.gpg" > "' . $filename . '.sql.gz"';
         
         $process = new Process($cmd);
+        $process->setTimeout($timeout);
+        $process->setIdleTimeout($timeout);
         $process->run();
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
@@ -237,6 +245,8 @@ class Snapshot
 
         $this->output->write(" [Decompress+Importing]");
         $process = new Process($cmd);
+        $process->setTimeout($timeout);
+        $process->setIdleTimeout($timeout);
         $process->run();
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
