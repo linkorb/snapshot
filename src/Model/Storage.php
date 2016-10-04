@@ -53,13 +53,11 @@ class Storage
     
     public function getS3Client()
     {
-        $s3 = new S3Client([
+        $s3 = S3Client::factory([
             'version' => 'latest',
             'region'  => $this->getArgument('region'),
-            'credentials' => [
-                'key' => $this->getArgument('access_key'),
-                'secret' => $this->getArgument('secret_key')
-            ]
+            'key' => $this->getArgument('access_key'),
+            'secret' => $this->getArgument('secret_key')
         ]);
         return $s3;
     }
