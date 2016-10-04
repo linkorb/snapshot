@@ -19,6 +19,8 @@ if (!file_exists($loader)) {
 
 require $loader;
 
+date_default_timezone_set('UTC');
+
 $application = new Application('Snapshot', '1.0.0');
 $application->setCatchExceptions(true);
 $application->add(new \Snapshot\Command\DatabaseBackupCommand());
