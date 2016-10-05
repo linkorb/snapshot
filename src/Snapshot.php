@@ -115,7 +115,7 @@ class Snapshot
         $storage = $this->getStorage($storageName);
         
         $this->cleanupTmp($server, $name);
-        $this->output->write(" * <info>" . $server->getName() . '/' . $name . '</info>:');
+        $this->output->write(" * " . date('Ymd H:i') . " <info>" . $server->getName() . '/' . $name . '</info>:');
         $filename = $this->getWorkDir() . '/tmp/' . $server->getName() . '/' . $name . '.sql.gz';
         if (!file_exists(dirname($filename))) {
             mkdir(dirname($filename), 0755, true);
