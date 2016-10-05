@@ -110,7 +110,7 @@ class Snapshot
     
     public function backup($serverName, $name, $storageName)
     {
-        $timeout = 60*20;
+        $timeout = 60*30;
         $server = $this->getServer($serverName);
         $storage = $this->getStorage($storageName);
         
@@ -177,7 +177,7 @@ class Snapshot
     
     public function restore($storageName, $serverName, $key)
     {
-        $timeout = 60*10;
+        $timeout = 60*30;
         $server = $this->getServer($serverName);
         $storage = $this->getStorage($storageName);
         $part = explode('/', $key);
