@@ -18,7 +18,6 @@ class Snapshot
     protected $servers = [];
     protected $storage = [];
     
-    
     public function __construct($output)
     {
         $this->output = $output;
@@ -110,6 +109,12 @@ class Snapshot
     
     public function backup($serverName, $name, $storageName)
     {
+        $storageKey = date('Ymd') . '/' . $name . '_' . $serverName . '_' . date('Hi') . '.sql.gz.gpg';
+        return $this->create($serverName, $name, $storageName, $storageKey);
+    }
+    
+    public function create($serverName, $name, $storageName, $storageKey)
+    {
         $timeout = 60*30;
         $server = $this->getServer($serverName);
         $storage = $this->getStorage($storageName);
@@ -134,6 +139,7 @@ class Snapshot
         //$cmd .= ' --result-file "' . $filename . '"';
         $cmd .= ' --databases "' . $name . '"';
         $cmd .= ' | gzip > ' . $filename;
+        //echo $cmd;exit();
         
         $this->output->write(" [Dump+Compress]");
         $process = new Process($cmd);
@@ -142,6 +148,12 @@ class Snapshot
         $process->run();
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
+        }
+        
+        $size = filesize($filename);
+        if ($size<(1024*1024)) {
+            // 1mb
+            throw new RuntimeException("Snapshot suspiciously small: " . $size . " bytes");
         }
         
         $gpgPassword = $storage->getArgument('gpg_password');
@@ -167,7 +179,7 @@ class Snapshot
         $this->output->write(" [Upload]");
         $s3->putObject(array(
             'Bucket' => $bucket,
-            'Key'    => $prefix . $server->getName() . '/' . date('Ymd') . '/' . $name . '.sql.gz.gpg',
+            'Key'    => $prefix . $storageKey,
             'Body'   => fopen($filename, 'r+')
         ));
         $this->output->writeln(" <info>Success</info>");
@@ -175,16 +187,18 @@ class Snapshot
     }
     
     
-    public function restore($storageName, $serverName, $key)
+    public function restore($storageName, $serverName, $key, $name = null)
     {
         $timeout = 60*30;
         $server = $this->getServer($serverName);
         $storage = $this->getStorage($storageName);
-        $part = explode('/', $key);
-        if (count($part)!=3) {
-            throw new RuntimeException("Invalid key format: " . $key);
+        if (!$name) {
+            $part = explode('/', $key);
+            if (count($part)!=3) {
+                throw new RuntimeException("Invalid key format: " . $key);
+            }
+            $name = $part[2];
         }
-        $name = $part[2];
         
         
         $filename = $this->getWorkDir() . '/tmp/' . $server->getName() . '/' . $name;
@@ -258,6 +272,7 @@ class Snapshot
     
     public function listSnapshots($storageName, $filter = null)
     {
+        $keys = [];
         $storage = $this->getStorage($storageName);
         $s3 = $storage->getS3Client();
         $bucket = $storage->getArgument('bucket');
@@ -279,9 +294,11 @@ class Snapshot
             }
             if ($hit) {
                 $key = substr($key, 0, -11); // strip postfixes .sql.gz.gpg
+                $keys[] = $key;
                 $this->output->writeLn($key);
             }
         }
+        return $keys;
     }
     
     public function cleanupTmp(Server $server, $name)
