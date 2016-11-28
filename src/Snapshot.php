@@ -159,7 +159,9 @@ class Snapshot
         $gpgPassword = $storage->getArgument('gpg_password');
         $this->output->write(" [Encrypt]");
         $gpg = $this->getCommandPath('gpg');
-        $cmd = 'echo "' . $gpgPassword . '" | ' . $gpg;
+        $cmd = '';
+        $cmd .= 'export HOME=/tmp &&';
+        $cmd .= ' echo "' . $gpgPassword . '" | ' . $gpg;
         $cmd .= ' --batch -q --passphrase-fd 0 --cipher-algo AES256 -c "' . $filename . '"';
         
         $process = new Process($cmd);
@@ -224,7 +226,9 @@ class Snapshot
         $gpgPassword = $storage->getArgument('gpg_password');
         $this->output->write(" [Decrypt]");
         $gpg = $this->getCommandPath('gpg');
-        $cmd = 'echo "' . $gpgPassword . '" | ' . $gpg;
+        $cmd = '';
+        $cmd .= 'export HOME=/tmp &&';
+        $cmd .= ' echo "' . $gpgPassword . '" | ' . $gpg;
         $cmd .= ' --no-tty -q --passphrase-fd 0 --decrypt "' . $filename . '.sql.gz.gpg" > "' . $filename . '.sql.gz"';
         
         $process = new Process($cmd);
