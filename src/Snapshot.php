@@ -109,7 +109,7 @@ class Snapshot
     
     public function backup($serverName, $name, $storageName)
     {
-        $storageKey = date('Ymd') . '/' . $name . '_' . $serverName . '_' . date('Hi') . '.sql.gz.gpg';
+        $storageKey = date('Ymd') . '/' . $name . '_' . date('Hi') . '_' . $serverName  . '.sql.gz.gpg';
         return $this->create($serverName, $name, $storageName, $storageKey);
     }
     
