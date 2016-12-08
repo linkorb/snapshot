@@ -285,10 +285,12 @@ class Snapshot
 
         $pdo = $server->getPdo();
 
+        /*
         $this->output->write(" [Drop]");
         $statement = $pdo->prepare('DROP DATABASE ' . $name);
         $statement->execute([]);
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        */
         
         $this->output->write(" [Create]");
         $statement = $pdo->prepare('CREATE DATABASE ' . $name);
