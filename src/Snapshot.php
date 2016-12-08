@@ -154,7 +154,7 @@ class Snapshot
             if ($match && !$inverse) {
                 $tableNames[] = $tableName;
             }
-            if ($match && !$inverse) {
+            if (!$match && $inverse) {
                 $tableNames[] = $tableName;
             }
         }
@@ -177,7 +177,7 @@ class Snapshot
         $cmd .= ' --triggers --opt --routines';
         $cmd .= ' --master-data=2';
         //$cmd .= ' --result-file "' . $filename . '"';
-        $cmd .= ' --databases "' . $name . '"';
+        $cmd .= ' ' . $name . '';
         foreach ($tableNames as $tableName) {
             $cmd .= ' ' . $tableName;
         }
