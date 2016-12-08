@@ -23,7 +23,7 @@ class DatabaseBackupCommand extends BaseCommand
 
         $this
             ->setName('database:backup')
-            ->setDescription('Backup all databases on a server')
+            ->setDescription('Backup a single database')
             ->addArgument(
                 'server',
                 InputArgument::REQUIRED,
@@ -45,6 +45,18 @@ class DatabaseBackupCommand extends BaseCommand
                 InputOption::VALUE_REQUIRED,
                 null
             )
+            ->addOption(
+                'rules',
+                'r',
+                InputOption::VALUE_REQUIRED,
+                null
+            )
+            ->addOption(
+                'inverse',
+                'i',
+                InputOption::VALUE_NONE,
+                false
+            )
         ;
     }
 
@@ -58,11 +70,16 @@ class DatabaseBackupCommand extends BaseCommand
         $serverName = $input->getArgument('server');
         $databaseName = $input->getArgument('name');
         $storageName = $input->getArgument('storage');
-        
-        $output->writeLn(
-            "Backing up database: <info>" . $serverName . '/' . $databaseName . '</info> to <info>' . $storageName . '</info>'
-        );
+        $rulesString = $input->getOption('rules');
+        $inverse = $input->getOption('inverse');
+        if ($rulesString) {
+            $rules = explode(',', $rulesString);
+        } else {
+            $rules = [];
+        }
 
-        $this->snapshot->backup($serverName, $databaseName, $storageName);
+        $storageKey = date('Ymd') . '/' . $databaseName . '_' . date('Hi') . '_' . $serverName  . '.sql.gz.gpg';
+        
+        $this->snapshot->create($serverName, $databaseName, $storageName, $storageKey, $rules, $inverse);
     }
 }

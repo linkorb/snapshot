@@ -107,17 +107,58 @@ class Snapshot
         throw new RuntimeException("Can't find path for command " . $name);
     }
     
-    public function backup($serverName, $name, $storageName)
+    public function create($serverName, $name, $storageName, $storageKey, $rules=[], $inverse = false)
     {
-        $storageKey = date('Ymd') . '/' . $name . '_' . date('Hi') . '_' . $serverName  . '.sql.gz.gpg';
-        return $this->create($serverName, $name, $storageName, $storageKey);
-    }
-    
-    public function create($serverName, $name, $storageName, $storageKey)
-    {
+        
+        $this->output->writeLn(
+            "Creating database snapshot: <info>" . $serverName . '/' . $name . '</info> to <info>' . $storageName . '</info>'
+        );
+
+        if (count($rules)==0) {
+            $rules[] = '*';
+        } else {
+            $this->output->write('Table rules: <info>');
+            foreach ($rules as $rule) {
+                $this->output->write($rule . ' ');
+            }
+            if ($inverse) {
+                $this->output->write('(inverse)');
+            }
+            $this->output->writeLn('</info>');
+        }
+        
         $timeout = 60*30;
         $server = $this->getServer($serverName);
         $storage = $this->getStorage($storageName);
+        
+        $pdo = $server->getPdo();
+        $statement = $pdo->prepare(
+            "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='" . $name ."';"
+        );
+        $statement->execute([]);
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        if (count($rows)==0) {
+            throw new RuntimeException("No such database on server: " . $name);
+        }
+        $tables = [];
+        $tableNames = [];
+        foreach ($rows as $row) {
+            $tableName = $row['TABLE_NAME'];
+            $tables[] = $tableName;
+            $match = false;
+            foreach ($rules as $rule) {
+                if (fnmatch($rule, $tableName)) {
+                    $match = true;
+                }
+            }
+            if ($match && !$inverse) {
+                $tableNames[] = $tableName;
+            }
+            if ($match && !$inverse) {
+                $tableNames[] = $tableName;
+            }
+        }
+
         
         $this->cleanupTmp($server, $name);
         $this->output->write(" * " . date('Ymd H:i') . " <info>" . $server->getName() . '/' . $name . '</info>:');
@@ -133,13 +174,15 @@ class Snapshot
         $cmd .= $mysqldump . ' -f -u ' . $server->getUsername() . ' -p' . $server->getPassword();
         $cmd .= ' -h' . $server->getAddress();
         $cmd .= ' --single-transaction';
-        $cmd .= ' --single-transaction';
-        $cmd .= ' --triggers --quick --routines';
+        $cmd .= ' --triggers --opt --routines';
         $cmd .= ' --master-data=2';
         //$cmd .= ' --result-file "' . $filename . '"';
         $cmd .= ' --databases "' . $name . '"';
+        foreach ($tableNames as $tableName) {
+            $cmd .= ' ' . $tableName;
+        }
         $cmd .= ' | gzip > ' . $filename;
-        //echo $cmd;exit();
+        //echo $cmd . "\n";exit();
         
         $this->output->write(" [Dump+Compress]");
         $process = new Process($cmd);
