@@ -199,6 +199,8 @@ class Snapshot
             throw new RuntimeException("Snapshot suspiciously small: " . $size . " bytes");
         }
         
+        $this->output->write(" [Size: " . round($size / (1024*1024),1) . 'MB]');
+        
         $gpgPassword = $storage->getArgument('gpg_password');
         $this->output->write(" [Encrypt]");
         $gpg = $this->getCommandPath('gpg');
