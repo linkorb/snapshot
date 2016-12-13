@@ -133,7 +133,7 @@ class Snapshot
         
         $pdo = $server->getPdo();
         $statement = $pdo->prepare(
-            "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='" . $name ."';"
+            "SELECT TABLE_TYPE, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='" . $name ."';"
         );
         $statement->execute([]);
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -151,11 +151,13 @@ class Snapshot
                     $match = true;
                 }
             }
-            if ($match && !$inverse) {
-                $tableNames[] = $tableName;
-            }
-            if (!$match && $inverse) {
-                $tableNames[] = $tableName;
+            if ($row['TABLE_TYPE']=='BASE TABLE') {
+                if ($match && !$inverse) {
+                    $tableNames[] = $tableName;
+                }
+                if (!$match && $inverse) {
+                    $tableNames[] = $tableName;
+                }
             }
         }
 
@@ -205,7 +207,7 @@ class Snapshot
         $this->output->write(" [Encrypt]");
         $gpg = $this->getCommandPath('gpg');
         $cmd = '';
-        $cmd .= 'export HOME=/tmp &&';
+        //$cmd .= 'export HOME=/tmp &&';
         $cmd .= ' echo "' . $gpgPassword . '" | ' . $gpg;
         $cmd .= ' --batch -q --passphrase-fd 0 --cipher-algo AES256 -c "' . $filename . '"';
         
@@ -272,7 +274,7 @@ class Snapshot
         $this->output->write(" [Decrypt]");
         $gpg = $this->getCommandPath('gpg');
         $cmd = '';
-        $cmd .= 'export HOME=/tmp &&';
+        //$cmd .= 'export HOME=/tmp &&';
         $cmd .= ' echo "' . $gpgPassword . '" | ' . $gpg;
         $cmd .= ' --no-tty -q --passphrase-fd 0 --decrypt "' . $filename . '.sql.gz.gpg" > "' . $filename . '.sql.gz"';
         
