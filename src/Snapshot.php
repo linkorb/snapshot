@@ -17,51 +17,51 @@ class Snapshot
     protected $workDir = '/snapshot';
     protected $servers = [];
     protected $storage = [];
-    
+
     public function __construct($output)
     {
         $this->output = $output;
     }
-    
+
     public function getWorkDir()
     {
         return $this->workDir;
     }
-    
+
     public function setWorkDir($workDir)
     {
         $this->workDir = $workDir;
         return $this;
     }
-    
-    
+
+
     public function getBasePath()
     {
         return $this->basePath;
     }
-    
+
     public function setBasePath($basePath)
     {
         $this->basePath = $basePath;
         return $this;
     }
-    
-    
+
+
     public function addServer(Server $server)
     {
         $this->servers[$server->getName()] = $server;
     }
-    
+
     public function getServers()
     {
         return $this->servers;
     }
-    
+
     public function hasServer($name)
     {
         return isset($this->servers[$name]);
     }
-    
+
     public function getServer($name)
     {
         if (!$this->hasServer($name)) {
@@ -69,22 +69,22 @@ class Snapshot
         }
         return $this->servers[$name];
     }
-    
+
     public function addStorage(Storage $storage)
     {
         $this->storages[$storage->getName()] = $storage;
     }
-    
+
     public function getStorages()
     {
         return $this->storages;
     }
-    
+
     public function hasStorage($name)
     {
         return isset($this->storages[$name]);
     }
-    
+
     public function getStorage($name)
     {
         if (!$this->hasStorage($name)) {
@@ -92,7 +92,7 @@ class Snapshot
         }
         return $this->storages[$name];
     }
-    
+
     public function getCommandPath($name)
     {
         $filename = '/usr/local/bin/' . $name;
@@ -103,13 +103,13 @@ class Snapshot
         if (file_exists($filename)) {
             return $filename;
         }
-        
+
         throw new RuntimeException("Can't find path for command " . $name);
     }
-    
+
     public function create($serverName, $name, $storageName, $storageKey, $rules=[], $inverse = false)
     {
-        
+
         $this->output->writeLn(
             "Creating database snapshot: <info>" . $serverName . '/' . $name . '</info> to <info>' . $storageName . '</info>'
         );
@@ -126,11 +126,11 @@ class Snapshot
             }
             $this->output->writeLn('</info>');
         }
-        
+
         $timeout = 60*30;
         $server = $this->getServer($serverName);
         $storage = $this->getStorage($storageName);
-        
+
         $pdo = $server->getPdo();
         $statement = $pdo->prepare(
             "SELECT TABLE_TYPE, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='" . $name ."';"
@@ -161,18 +161,18 @@ class Snapshot
             }
         }
 
-        
+
         $this->cleanupTmp($server, $name);
         $this->output->write(" * " . date('Ymd H:i') . " <info>" . $server->getName() . '/' . $name . '</info>:');
         $filename = $this->getWorkDir() . '/tmp/' . $server->getName() . '/' . $name . '.sql.gz';
         if (!file_exists(dirname($filename))) {
             mkdir(dirname($filename), 0755, true);
         }
-        
+
         $cmd = '';
         //$cmd .= '/usr/bin/ionice -c3 ';
         $mysqldump = $this->getCommandPath('mysqldump');
-        
+
         $cmd .= $mysqldump . ' -f -u ' . $server->getUsername() . ' -p' . $server->getPassword();
         $cmd .= ' -h' . $server->getAddress();
         $cmd .= ' --single-transaction';
@@ -185,7 +185,7 @@ class Snapshot
         }
         $cmd .= ' | gzip > ' . $filename;
         //echo $cmd . "\n";exit();
-        
+
         $this->output->write(" [Dump+Compress]");
         $process = new Process($cmd);
         $process->setTimeout($timeout);
@@ -194,15 +194,15 @@ class Snapshot
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
         }
-        
+
         $size = filesize($filename);
         if ($size<(1024*1024)) {
             // 1mb
             throw new RuntimeException("Snapshot suspiciously small: " . $size . " bytes");
         }
-        
+
         $this->output->write(" [Size: " . round($size / (1024*1024),1) . 'MB]');
-        
+
         $gpgPassword = $storage->getArgument('gpg_password');
         $this->output->write(" [Encrypt]");
         $gpg = $this->getCommandPath('gpg');
@@ -210,7 +210,7 @@ class Snapshot
         $cmd .= 'export HOME=/tmp &&';
         $cmd .= ' echo "' . $gpgPassword . '" | ' . $gpg;
         $cmd .= ' --batch -q --passphrase-fd 0 --cipher-algo AES256 -c "' . $filename . '"';
-        
+
         $process = new Process($cmd);
         $process->setTimeout($timeout);
         $process->setIdleTimeout($timeout);
@@ -219,12 +219,12 @@ class Snapshot
             throw new ProcessFailedException($process);
         }
         $filename .= '.gpg';
-        
+
         $s3 = $storage->getS3Client();
-        
+
         $bucket = $storage->getArgument('bucket');
         $prefix = $storage->getArgument('prefix');
-        
+
         $this->output->write(" [Upload]");
         $s3->putObject(array(
             'Bucket' => $bucket,
@@ -234,8 +234,8 @@ class Snapshot
         $this->output->writeln(" <info>Success</info>");
         $this->cleanupTmp($server, $name);
     }
-    
-    
+
+
     public function restore($storageName, $serverName, $key, $name = null)
     {
         $timeout = 60*30;
@@ -248,8 +248,8 @@ class Snapshot
             }
             $name = $part[2];
         }
-        
-        
+
+
         $filename = $this->getWorkDir() . '/tmp/' . $server->getName() . '/' . $name;
         if (!file_exists(dirname($filename))) {
             mkdir(dirname($filename), 0755, true);
@@ -258,18 +258,18 @@ class Snapshot
         $this->cleanupTmp($server, $name);
 
         $s3 = $storage->getS3Client();
-        
+
         $bucket = $storage->getArgument('bucket');
         $prefix = $storage->getArgument('prefix');
-        
+
         $this->output->write(" [Download]");
         $res = $s3->getObject(array(
             'Bucket' => $bucket,
             'Key'    => $prefix . $key . '.sql.gz.gpg',
             'SaveAs'   => $filename . '.sql.gz.gpg'
         ));
-        
-        
+
+
         $gpgPassword = $storage->getArgument('gpg_password');
         $this->output->write(" [Decrypt]");
         $gpg = $this->getCommandPath('gpg');
@@ -277,7 +277,7 @@ class Snapshot
         $cmd .= 'export HOME=/tmp &&';
         $cmd .= ' echo "' . $gpgPassword . '" | ' . $gpg;
         $cmd .= ' --no-tty -q --passphrase-fd 0 --decrypt "' . $filename . '.sql.gz.gpg" > "' . $filename . '.sql.gz"';
-        
+
         $process = new Process($cmd);
         $process->setTimeout($timeout);
         $process->setIdleTimeout($timeout);
@@ -285,7 +285,7 @@ class Snapshot
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
         }
-        
+
 
         $pdo = $server->getPdo();
 
@@ -295,16 +295,16 @@ class Snapshot
         $statement->execute([]);
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
         */
-        
+
         $this->output->write(" [Create]");
         $statement = $pdo->prepare('CREATE DATABASE ' . $name);
         $statement->execute([]);
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
-        
+
         $cmd = '';
         $mysql = $this->getCommandPath('mysql');
 
-        $cmd .= 'gunzip < ' . $filename . '.sql.gz |';
+        $cmd .= 'pv -n -i 30 ' . $filename . '.sql.gz | gunzip | ';
 
         $cmd .= $mysql . ' -u ' . $server->getUsername() . ' -p' . $server->getPassword();
         $cmd .= ' -h' . $server->getAddress();
@@ -314,15 +314,21 @@ class Snapshot
         $process = new Process($cmd);
         $process->setTimeout($timeout);
         $process->setIdleTimeout($timeout);
-        $process->run();
+        $process->run(function ($type, $buffer) {
+            if (Process::OUT === $type) {
+                echo "OUT: " . $buffer;
+            } else {
+                echo "Progress: " . $buffer;
+            }
+        });
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
         }
-        
+
         $this->output->writeln(" <info>Success</info>");
         //$this->cleanupTmp($server, $name);
     }
-    
+
     public function listSnapshots($storageName, $filter = null)
     {
         $keys = [];
@@ -353,7 +359,7 @@ class Snapshot
         }
         return $keys;
     }
-    
+
     public function cleanupTmp(Server $server, $name)
     {
         $filename = $this->getWorkDir() . '/tmp/' . $server->getName() . '/' . $name . '.sql';
