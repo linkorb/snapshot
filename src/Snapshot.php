@@ -198,7 +198,7 @@ class Snapshot
         $size = filesize($filename);
         if ($size<(1024*1024)) {
             // 1mb
-            throw new RuntimeException("Snapshot suspiciously small: " . $size . " bytes");
+            //throw new RuntimeException("Snapshot suspiciously small: " . $size . " bytes");
         }
 
         $this->output->write(" [Size: " . round($size / (1024*1024),1) . 'MB]');
