@@ -177,7 +177,7 @@ class Snapshot
         $cmd .= ' -h' . $server->getAddress();
         $cmd .= ' --single-transaction';
         $cmd .= ' --triggers --opt --routines';
-        $cmd .= ' --master-data=2';
+        //$cmd .= ' --master-data=2';
         //$cmd .= ' --result-file "' . $filename . '"';
         $cmd .= ' ' . $name . '';
         foreach ($tableNames as $tableName) {
