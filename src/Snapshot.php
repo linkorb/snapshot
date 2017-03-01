@@ -233,6 +233,9 @@ class Snapshot
         ));
         $this->output->writeln(" <info>Success</info>");
         $this->cleanupTmp($server, $name);
+	return [
+            'size' => $size
+        ];
     }
 
 
