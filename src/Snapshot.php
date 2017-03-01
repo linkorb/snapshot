@@ -233,43 +233,34 @@ class Snapshot
         ));
         $this->output->writeln(" <info>Success</info>");
         $this->cleanupTmp($server, $name);
-	return [
+        return [
             'size' => $size
         ];
     }
 
-
-    public function restore($storageName, $serverName, $key, $name = null)
+    public function download($storageName, $key, $filename)
     {
         $timeout = 60*30;
-        $server = $this->getServer($serverName);
         $storage = $this->getStorage($storageName);
-        if (!$name) {
-            $part = explode('/', $key);
-            if (count($part)!=3) {
-                throw new RuntimeException("Invalid key format: " . $key);
-            }
-            $name = $part[2];
-        }
-
-
-        $filename = $this->getWorkDir() . '/tmp/' . $server->getName() . '/' . $name;
         if (!file_exists(dirname($filename))) {
             mkdir(dirname($filename), 0755, true);
         }
-
-        $this->cleanupTmp($server, $name);
+        if (!file_exists(dirname($filename))) {
+            throw new RuntimeException("Failed to create working directory: " . dirname($filename));
+        }
 
         $s3 = $storage->getS3Client();
 
         $bucket = $storage->getArgument('bucket');
         $prefix = $storage->getArgument('prefix');
 
+        $tmpFilename = $filename . '.gpg';
+
         $this->output->write(" [Download]");
         $res = $s3->getObject(array(
             'Bucket' => $bucket,
             'Key'    => $prefix . $key . '.sql.gz.gpg',
-            'SaveAs'   => $filename . '.sql.gz.gpg'
+            'SaveAs'   => $tmpFilename
         ));
 
 
@@ -279,16 +270,37 @@ class Snapshot
         $cmd = '';
         $cmd .= 'export HOME=/tmp &&';
         $cmd .= ' echo "' . $gpgPassword . '" | ' . $gpg;
-        $cmd .= ' --batch --no-tty -q --passphrase-fd 0 --decrypt "' . $filename . '.sql.gz.gpg" > "' . $filename . '.sql.gz"';
+        $cmd .= ' --batch --no-tty -q --passphrase-fd 0 --decrypt "' . $tmpFilename . '" > "' . $filename . '"';
 
         $process = new Process($cmd);
         $process->setTimeout($timeout);
         $process->setIdleTimeout($timeout);
         $process->run();
+        unlink($tmpFilename);
         if (!$process->isSuccessful()) {
             throw new ProcessFailedException($process);
         }
+        $this->output->writeln(" <info>Success</info>");
+        return true;
+    }
 
+
+    public function restore($storageName, $serverName, $key, $name = null)
+    {
+        $timeout = 60*30;
+        $server = $this->getServer($serverName);
+
+        if (!$name) {
+            $part = explode('/', $key);
+            if (count($part)!=3) {
+                throw new RuntimeException("Invalid key format: " . $key);
+            }
+            $name = $part[2];
+        }
+        $this->cleanupTmp($server, $name);
+
+        $filename = $this->getWorkDir() . '/tmp/' . $server->getName() . '/' . $name . '.sql.gz';
+        $this->download($storageName, $key, $filename);
 
         $pdo = $server->getPdo();
 
@@ -307,7 +319,7 @@ class Snapshot
         $cmd = '';
         $mysql = $this->getCommandPath('mysql');
 
-        $cmd .= 'pv -n -i 30 ' . $filename . '.sql.gz | gunzip | ';
+        $cmd .= 'pv -n -i 30 ' . $filename . ' | gunzip | ';
 
         $cmd .= $mysql . ' -u ' . $server->getUsername() . ' -p' . $server->getPassword();
         $cmd .= ' -h' . $server->getAddress();

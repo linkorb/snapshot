@@ -27,4 +27,5 @@ $application->add(new \Snapshot\Command\DatabaseBackupCommand());
 $application->add(new \Snapshot\Command\ServerBackupCommand());
 $application->add(new \Snapshot\Command\SnapshotListCommand());
 $application->add(new \Snapshot\Command\SnapshotRestoreCommand());
+$application->add(new \Snapshot\Command\SnapshotDownloadCommand());
 $application->run();
