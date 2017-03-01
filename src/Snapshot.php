@@ -276,7 +276,7 @@ class Snapshot
         $cmd = '';
         $cmd .= 'export HOME=/tmp &&';
         $cmd .= ' echo "' . $gpgPassword . '" | ' . $gpg;
-        $cmd .= ' --no-tty -q --passphrase-fd 0 --decrypt "' . $filename . '.sql.gz.gpg" > "' . $filename . '.sql.gz"';
+        $cmd .= ' --batch --no-tty -q --passphrase-fd 0 --decrypt "' . $filename . '.sql.gz.gpg" > "' . $filename . '.sql.gz"';
 
         $process = new Process($cmd);
         $process->setTimeout($timeout);
