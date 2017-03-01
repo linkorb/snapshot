@@ -138,7 +138,7 @@ class Snapshot
         $statement->execute([]);
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
         if (count($rows)==0) {
-            throw new RuntimeException("No such database on server: " . $name);
+            throw new RuntimeException("No such database on server (or without schema): " . $name);
         }
         $tables = [];
         $tableNames = [];
