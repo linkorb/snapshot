@@ -57,8 +57,10 @@ class Storage
         $s3 = S3Client::factory([
             'version' => 'latest',
             'region'  => $this->getArgument('region'),
-            'key' => $this->getArgument('access_key'),
-            'secret' => $this->getArgument('secret_key')
+            'credentials' => [
+                'key' => $this->getArgument('access_key'),
+                'secret' => $this->getArgument('secret_key'),
+            ]
         ]);
         return $s3;
     }
