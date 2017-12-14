@@ -57,6 +57,7 @@ class Storage
         $s3 = S3Client::factory([
             'version' => 'latest',
             'region'  => $this->getArgument('region'),
+            'endpoint' => 'https://s3.' . $this->getArgument('region') . '.amazonaws.com', // Needed for unknown reason
             'credentials' => [
                 'key' => $this->getArgument('access_key'),
                 'secret' => $this->getArgument('secret_key'),
