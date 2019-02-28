@@ -284,6 +284,25 @@ class Snapshot
         return true;
     }
 
+    public function delete($storageName, $key)
+    {
+        $storage = $this->getStorage($storageName);
+
+        $s3 = $storage->getS3Client();
+
+        $bucket = $storage->getArgument('bucket');
+        $prefix = $storage->getArgument('prefix');
+
+        $this->output->write(" [Delete]");
+        $res = $s3->deleteObject(array(
+            'Bucket' => $bucket,
+            'Key'    => $prefix . $key . '.sql.gz.gpg',
+        ));
+
+        $this->output->writeln(" <info>Success</info>");
+        return true;
+    }
+
 
     public function restore($storageName, $serverName, $key, $name = null)
     {
