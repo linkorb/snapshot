@@ -183,22 +183,37 @@ class Snapshot
         foreach ($tableNames as $tableName) {
             $cmd .= ' ' . $tableName;
         }
-        $cmd .= ' | gzip > ' . $filename;
-        //echo $cmd . "\n";exit();
+        $cmd .= ' | gzip > ' . escapeshellarg($filename);
+        // dash (Debian /bin/sh) has no pipefail. Without it, gzip exits 0
+        // on an empty mysqldump and the failure is uploaded as a snapshot.
+        $cmd = 'bash -o pipefail -c ' . escapeshellarg($cmd);
 
         $this->output->write(" [Dump+Compress]");
         $process = new Process($cmd);
         $process->setTimeout($timeout);
         $process->setIdleTimeout($timeout);
         $process->run();
+        $stderr = trim($process->getErrorOutput());
         if (!$process->isSuccessful()) {
-            throw new ProcessFailedException($process);
+            throw new RuntimeException(sprintf(
+                "mysqldump failed for %s on %s (exit %s): %s",
+                $name,
+                $server->getName(),
+                $process->getExitCode(),
+                $stderr !== '' ? $stderr : 'no stderr'
+            ));
         }
 
-        $size = filesize($filename);
-        if ($size<(1024*1024)) {
-            // 1mb
-            //throw new RuntimeException("Snapshot suspiciously small: " . $size . " bytes");
+        $size = file_exists($filename) ? filesize($filename) : 0;
+        if ($size < 1024) {
+            @unlink($filename);
+            throw new RuntimeException(sprintf(
+                "Snapshot for %s on %s is %d bytes, below the 1KB minimum. mysqldump produced no SQL. stderr: %s",
+                $name,
+                $server->getName(),
+                $size,
+                $stderr !== '' ? $stderr : 'no stderr'
+            ));
         }
 
         $this->output->write(" [Size: " . round($size / (1024*1024),1) . 'MB]');
