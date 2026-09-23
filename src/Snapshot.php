@@ -107,6 +107,20 @@ class Snapshot
         throw new RuntimeException("Can't find path for command " . $name);
     }
 
+    /**
+     * mysqldump and mysql default to port 3306. Servers in dbdb also use
+     * 10101, 3307 and 3308; PDO already connects with this port.
+     */
+    private function getClientPortArgument(Server $server)
+    {
+        $port = (int) $server->getPort();
+        if ($port < 1) {
+            $port = 3306;
+        }
+
+        return ' -P' . $port;
+    }
+
     public function create($serverName, $name, $storageName, $storageKey, $rules=[], $inverse = false)
     {
 
@@ -175,6 +189,7 @@ class Snapshot
 
         $cmd .= $mysqldump . ' -f -u ' . $server->getUsername() . ' -p' . $server->getPassword();
         $cmd .= ' -h' . $server->getAddress();
+        $cmd .= $this->getClientPortArgument($server);
         $cmd .= ' --single-transaction';
         $cmd .= ' --triggers --opt --routines';
         //$cmd .= ' --master-data=2';
@@ -357,6 +372,7 @@ class Snapshot
 
         $cmd .= $mysql . ' -u ' . $server->getUsername() . ' -p' . $server->getPassword();
         $cmd .= ' -h' . $server->getAddress();
+        $cmd .= $this->getClientPortArgument($server);
         $cmd .= ' ' . $name;
 
         $this->output->write(" [Decompress+Importing]");
